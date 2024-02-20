@@ -1,0 +1,73 @@
+"""
+The main file of the real time system. Receives all the input parameters and start the system.
+"""
+
+import os
+import argparse
+
+from model_training import ModelFactory, ModelTrainer
+from data_handling import DataMapper
+
+def check_paths(args):
+  """
+  Checks the path parameters provided when running the program.
+
+  args: Arguments as returned by argparse parser.
+  """
+
+  inf_path = args.infile
+  if not os.path.isfile(inf_path):
+    raise ValueError("File does not exist: {}".format(inf_path))
+
+  outf_path = args.outf_path
+  if not os.path.isdir(outf_path):
+    print("Creating directory for output: {}".format(outf_path))
+    os.mkdir(outf_path)
+
+  settings_path = args.settingsfile
+  if not os.path.isfile(settings_path):
+    print("Settings file does not exist: {}".format(settings_path))
+    os.mkdir(settings_path)
+
+  return inf_path, outf_path, settings_path
+
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("infile", type=str, help="Path to input file")
+  parser.add_argument("settingsfile", type=str, help="Path to settings file for input data. See ./data_settings/")
+  parser.add_argument("--outf_path", type=str, default="results", help="Where to write output")
+
+  # Model and model training related arguments
+  parser.add_argument("--model", type=str, default="vanilla_ae", help="The type of model to use. \
+                      Currently only 'vanilla_ae' is supported.")
+  parser.add_argument("--n_training_examples", type=int, default=int(1e6), help="Number of training examples")
+  parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
+                      last batch will just be filled with the remaining training examples.")
+  parser.add_argument("--use_cuda", type=bool, default=False, help="1 if cuda is used, 0 otherwise")
+
+  # Data related arguments
+  parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
+
+  args = parser.parse_args()
+
+  # preprocessing
+  inf_path, outf_path, settings_path = check_paths(args)
+  data_handler = DataMapper(inf_path, settings_path, args.ngram_size)
+
+  # prepare training
+  n_training_examples = args.n_training_examples
+  if not args.use_cuda:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # disable GPU, no visible improvement on our machine
+
+  model_type = args.model
+  model_factory = ModelFactory()
+  model_factory.get_model(model_type)
+
+  # train model
+  input_shape = data_handler.get_input_shape()
+  print("Expected input shape for model: {}".format(input_shape))
+  trainer = ModelTrainer()
+  
+
+  # postprocessing

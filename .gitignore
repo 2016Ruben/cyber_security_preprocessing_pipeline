@@ -1,0 +1,7 @@
+# unwanted files
+*__pycache__*
+requirements_full.txt
+
+# data related
+data
+results

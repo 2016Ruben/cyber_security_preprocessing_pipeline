@@ -3,6 +3,8 @@ Written by Robert Baumgartner, 2024
 r.baumgartner-1@tudelft.nl
 """
 
+import os
+
 import numpy as np
 
 class ModelTrainer():
@@ -10,10 +12,13 @@ class ModelTrainer():
   Object that trains a given model.
   """
   
-  def __init__(self, data_handler, model_name: str, n_training_examples: int):
+  def __init__(self, data_handler, model_name: str, n_training_examples: int, save_model: bool, model_save_path: str):
     self.data_handler = data_handler
     self.model_name = model_name
     self.n_training_examples = n_training_examples
+
+    self.save_model = save_model
+    self.model_save_path = model_save_path
     
     self.count = 0
 
@@ -33,8 +38,13 @@ class ModelTrainer():
     """
     train_batch = list()
     for i in range(self.n_training_examples):
-      next_example, label = self.data_handler.get_next_window()
-      #next_example = np.expand_dims(next_example, 0)
+      res = self.data_handler.get_next_window()
+      if res is None:
+        print("EOF reached during training phase. Please choose a larger file or adjust 'n_training_examples'\
+                        parameter. Terminating program.")
+        exit()
+
+      next_example, label = res[0], res[1]
       if benign_training and label==1:
         continue
       train_batch.append(next_example)
@@ -51,3 +61,14 @@ class ModelTrainer():
       epochs=1,
       shuffle=False
     )
+
+    if not self.save_model:
+      return
+    
+    path_split = os.path.split(self.model_save_path)
+    directory = os.path.join(*(path_split[:-1]))
+    print("Storing model in {}".format(directory))
+    if not os.path.isdir(directory):
+      os.mkdir(directory)
+
+    model.save(self.model_save_path)

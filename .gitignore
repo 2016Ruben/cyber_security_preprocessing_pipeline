@@ -1,5 +1,7 @@
-# unwanted files
+# unwanted (output) files
 *__pycache__*
+*.keras
+*.h5
 requirements_full.txt
 
 # data related

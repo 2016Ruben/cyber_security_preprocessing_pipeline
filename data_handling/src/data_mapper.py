@@ -103,12 +103,19 @@ class DataMapper():
     if self.configs.has_header:
       self.input_fh.readline() # we do away with the header
 
+  def __del__(self):
+    self.input_fh.close()
+
   def get_next_window(self):
     """
     Reads a flow, maps it to the different channels, and returns a concatenated window 
     along with the mapped label. Label = 0 for benign, 1 for malicious.
     """
-    flow = self.input_fh.readline().strip().split(self.configs.delimiter)
+    line = self.input_fh.readline()
+    if line=="":
+      return None # reached eof
+    
+    flow = line.strip().split(self.configs.delimiter)
     label = 0 if flow[self.configs.label_idx] == self.configs.background_label else 1
     
     self._store_flow(flow, label)

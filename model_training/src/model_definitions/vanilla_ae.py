@@ -15,7 +15,7 @@ def get_uncompiled_vanilla_ae(input_shape, output_dim):
       tf.Model: The uncompiled model.
   """
   input_layer = Input(shape=input_shape)
-  encoder = Dense(int(output_dim * 0.5), activation="relu")
+  encoder = LSTM(int(output_dim * 0.5), activation="relu")
   x_encoder = encoder(input_layer)
   encoder_output = Dense(int(output_dim * 0.25), activation="relu")(x_encoder)
 

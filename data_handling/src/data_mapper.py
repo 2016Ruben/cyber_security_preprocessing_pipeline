@@ -89,7 +89,6 @@ class DataMapper():
 
     self.data_path = data_path
     self.configs = InputConfig()
-
     self.configs.read_settings(settings_path)
     print("Read the input data setting with the following configurations: \n", self.configs)
 
@@ -103,6 +102,34 @@ class DataMapper():
     self.input_fh = open(self.data_path, "rt")
     if self.configs.has_header:
       self.input_fh.readline() # we do away with the header
+
+  def get_next_window(self):
+    """
+    Reads a flow, maps it to the different channels, and returns a concatenated window 
+    along with the mapped label. Label = 0 for benign, 1 for malicious.
+    """
+    flow = self.input_fh.readline().strip().split(self.configs.delimiter)
+    label = 0 if flow[self.configs.label_idx] == self.configs.background_label else 1
+    
+    self._store_flow(flow, label)
+
+    src_ip = flow[self.configs.src_ip]
+    dst_ip = flow[self.configs.dst_ip]
+
+    seq_ngram = np.array(self.seq_store.retrieve_window())
+    src_ngram = np.array(self.src_store[src_ip].retrieve_window())
+    dst_ngram = np.array(self.dst_store[dst_ip].retrieve_window())
+    con_ngram = np.array(self.con_store[self._map_connection(src_ip, dst_ip)].retrieve_window())
+
+    return np.hstack((seq_ngram, src_ngram, dst_ngram, con_ngram)), label
+  
+  def get_input_shape(self):
+    """
+    Gets the input shape that's to be expected for the model. The shape is inferred from the features as declared in the 
+    settings, as well as from the window_size.
+    """
+    return _SlidingWindow.window_size, _SlidingWindow.n_features*2*4 # *2 for statistics, and *4 for 4 channels
+  
 
   def _map_connection(self, src, dst):
     """A minor way to unify the formation of connection keys.
@@ -153,30 +180,3 @@ class DataMapper():
     self._insert_into_store(self.dst_store, dst_ip, features)
     self._insert_into_store(self.con_store, self._map_connection(src_ip, dst_ip), features)
     self.current_idx += 1
-
-  def get_next_window(self):
-    """
-    Reads a flow, maps it to the different channels, and returns a concatenated window 
-    along with the mapped label. Label = 0 for benign, 1 for malicious.
-    """
-    flow = self.input_fh.readline().strip().split(self.configs.delimiter)
-    label = 0 if flow[self.configs.label_idx] == self.configs.background_label else 1
-    
-    self._store_flow(flow, label)
-
-    src_ip = flow[self.configs.src_ip]
-    dst_ip = flow[self.configs.dst_ip]
-
-    seq_ngram = np.array(self.seq_store.retrieve_window())
-    src_ngram = np.array(self.src_store[src_ip].retrieve_window())
-    dst_ngram = np.array(self.dst_store[dst_ip].retrieve_window())
-    con_ngram = np.array(self.con_store[self._map_connection(src_ip, dst_ip)].retrieve_window())
-
-    return np.hstack((seq_ngram, src_ngram, dst_ngram, con_ngram)), label
-  
-  def get_input_shape(self):
-    """
-    Gets the input shape that's to be expected for the model. The shape is inferred from the features as declared in the 
-    settings, as well as from the window_size.
-    """
-    return _SlidingWindow.window_size, _SlidingWindow.n_features*2

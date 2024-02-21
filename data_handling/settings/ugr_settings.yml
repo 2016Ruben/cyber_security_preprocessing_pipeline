@@ -11,10 +11,13 @@ ip_address:
   src: 2
   dst: 3
 
-used_features: # we use Dur, SrcPort, DstPort, Pkts, Bytes
+timestamp:
+  use_timediff: true, # if false don't ignore the timestamp
+  idx: 0,
+  format: "%Y-%m-%d %H:%M:%S"
+
+used_features: # we use Dur, Pkts, Bytes
   1: "continuous" # continuous or categorical.
-  4: "continuous"
-  5: "continuous"
   -3: "continuous"
   -2: "continuous"
 

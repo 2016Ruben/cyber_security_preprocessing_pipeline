@@ -23,6 +23,10 @@ class InputConfig():
     self.src_ip = None
     self.dst_ip = None
 
+    self.use_timediff = None
+    self.timestamp_idx = None
+    self.timestamp_format = None
+
     self.feature_map = dict() # mapping index to type. 0 for continuous, 1 for categorical
 
     self.label_idx = None
@@ -40,6 +44,10 @@ class InputConfig():
 
     self.src_ip = yml_input["ip_address"]["src"]
     self.dst_ip = yml_input["ip_address"]["dst"]
+
+    self.use_timediff = yml_input["timestamp"]["use_timediff"]
+    self.timestamp_idx = yml_input["timestamp"]["idx"]
+    self.timestamp_format = yml_input["timestamp"]["format"]
 
     for f_idx, f_type in yml_input["used_features"].items():
       self.feature_map[f_idx] = self.__feature_type_mapping[f_type]

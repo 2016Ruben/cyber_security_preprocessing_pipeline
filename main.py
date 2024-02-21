@@ -45,6 +45,8 @@ if __name__ == "__main__":
   parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
                       last batch will just be filled with the remaining training examples.")
   parser.add_argument("--use_cuda", type=bool, default=False, help="1 if cuda is used, 0 otherwise")
+  parser.add_argument("--benign_training", type=bool, default=True, help="If True (1), then only benign examples are used during training.\
+                      Else, all data examples will be used during training.")
 
   # Data related arguments
   parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
@@ -56,18 +58,17 @@ if __name__ == "__main__":
   data_handler = DataMapper(inf_path, settings_path, args.ngram_size)
 
   # prepare training
-  n_training_examples = args.n_training_examples
   if not args.use_cuda:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # disable GPU, no visible improvement on our machine
 
   model_type = args.model
-  model_factory = ModelFactory()
-  model_factory.get_model(model_type)
+  input_shape = data_handler.get_input_shape()
+  model_factory = ModelFactory(model_type)
+  model = model_factory.get_model(input_shape=input_shape)
 
   # train model
-  input_shape = data_handler.get_input_shape()
   print("Expected input shape for model: {}".format(input_shape))
-  trainer = ModelTrainer()
-  
+  trainer = ModelTrainer(data_handler, model_type, args.n_training_examples)
+  trainer.train(model, args.benign_training, b_size=args.b_size)
 
   # postprocessing

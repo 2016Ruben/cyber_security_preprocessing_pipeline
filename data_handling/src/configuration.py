@@ -47,6 +47,7 @@ class InputConfig():
 
     self.use_timediff = yml_input["timestamp"]["use_timediff"]
     self.timestamp_idx = yml_input["timestamp"]["idx"]
+    print(self.timestamp_idx, type(self.timestamp_idx))
     self.timestamp_format = yml_input["timestamp"]["format"]
 
     for f_idx, f_type in yml_input["used_features"].items():

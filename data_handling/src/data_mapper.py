@@ -7,12 +7,15 @@ import math
 import copy
 import numpy as np
 
+from datetime import datetime
+
 from .configuration import InputConfig
+
 
 class _SlidingWindow():
   """
-  This class models a sliding window. Along the mapped features it also holds
-  the IDs for each of the flows.
+  This class models a sliding window. Along the mapped features it also holds the IDs
+  for each of the flows and is responsible for the correct computation of its features.
   """
   # static attributes
   window_size = 0
@@ -28,19 +31,20 @@ class _SlidingWindow():
     self.window = list()
     self.ids = list()
     self.labels = list() if store_labels else None
+    self.last_timestamp = 0
 
     self.N = 0
     self.LS = [0] * _SlidingWindow.n_features
     self.SS = [0] * _SlidingWindow.n_features
 
-
-  def insert_flow(self, features, flow_id, label=None):
+  def insert_flow(self, features, flow_id:int, label:int=None, timestamp:float=None):
     """Inserts a flow into the window. 
 
     Args:
         features (list): The selected features as a list.
         flow_id (int): ID of the flow.
         label (int): The label. 0 for benign, 1 for malign. If no label is provided it is None. Only the seq channels tracks labels.
+        timestamp (float): The timestamp in seconds. We use this one for the timediff-feature.
     """
     self.N += 1
     mapped_features = list()
@@ -48,10 +52,15 @@ class _SlidingWindow():
       self.LS[idx] += f
       self.SS[idx] += f**2
 
-      mean = self.LS[idx] / self.N
-      mapped_features.append(mean)
-      std_dev = math.sqrt( abs( (self.SS[idx]/2) - mean**2) )
-      mapped_features.append(std_dev)
+      mapped_features = self._insert_statistics(mapped_features, idx)
+
+    if timestamp is not None:
+      diff = timestamp - self.last_timestamp
+      diff = math.log(diff + 1)
+      self.LS[-1] = diff
+      self.SS[-1] = diff**2
+      mapped_features = self._insert_statistics(mapped_features, -1)
+      self.last_timestamp = timestamp
 
     self.window.append(np.array(mapped_features))
     self.ids.append(flow_id)
@@ -78,6 +87,20 @@ class _SlidingWindow():
       res.insert(0, np.zeros((_SlidingWindow.n_features*2))) # *2 because of mean and std-deviation
     return res
 
+  def _insert_statistics(self, res_list, idx):
+    """Computest the statistics from LS and SS and inserts them into list at the 
+    given index. Returns updated list.
+
+    Args:
+        res_list (list): The list you want to append the features to.
+        idx (int): The index of LS and SS.
+    """
+    mean = self.LS[idx] / self.N
+    res_list.append(mean)
+    std_dev = math.sqrt( abs( (self.SS[idx]/2) - mean**2) )
+    res_list.append(std_dev)
+    return res_list
+
 
 class DataMapper():
   def __init__(self, data_path: str, settings_path: str, window_size: int):
@@ -92,9 +115,13 @@ class DataMapper():
     self.configs.read_settings(settings_path)
     print("Read the input data setting with the following configurations: \n", self.configs)
 
+    n_features = len(self.configs.feature_map)
+    if self.configs.use_timediff:
+      n_features += 1
+
     # these are the data structures mapping the ids to the windows
     self.current_idx = 0
-    self.seq_store = _SlidingWindow(window_size=window_size, n_features=len(self.configs.feature_map), store_labels=True)
+    self.seq_store = _SlidingWindow(window_size=window_size, n_features=n_features, store_labels=True)
     self.src_store = dict() # #src ip to window
     self.dst_store = dict() # dst ip to window
     self.con_store = dict() # src_ip + dst_ip to window
@@ -147,7 +174,7 @@ class DataMapper():
     """
     return src + "_" + dst
 
-  def _insert_into_store(self, store, key, features):
+  def _insert_into_store(self, store, key, features, timestamp: float):
     """Generic function to insert into the store (src, dst, con). Avoids boilerplate.
 
     Note: These ones do not use labels, therefore we don't need a label interface here.
@@ -158,10 +185,10 @@ class DataMapper():
         features (list): The features.
     """
     if key in store:
-      store[key].insert_flow(features, self.current_idx)
+      store[key].insert_flow(features, self.current_idx, timestamp=timestamp)
     else:
       store[key] = _SlidingWindow()
-      store[key].insert_flow(features, self.current_idx)
+      store[key].insert_flow(features, self.current_idx, timestamp=timestamp)
 
   def _store_flow(self, flow, label):
     """Maps the flow to the channels, and updates the internal datastructures accordingly.
@@ -178,12 +205,18 @@ class DataMapper():
         features.append(float(flow[idx])+1)
       else:
         raise ValueError("Categorical features not supported yet.")
-      
+    
+    timestamp = None
+    if self.configs.use_timediff:
+      timestamp_string = flow[self.configs.timestamp_idx]
+      dt_obj = datetime.strptime(timestamp_string, self.configs.timestamp_format)
+      timestamp = dt_obj.timestamp()
+
     src_ip = flow[self.configs.src_ip]
     dst_ip = flow[self.configs.dst_ip]
 
-    self.seq_store.insert_flow(features, self.current_idx, label)
-    self._insert_into_store(self.src_store, src_ip, features)
-    self._insert_into_store(self.dst_store, dst_ip, features)
-    self._insert_into_store(self.con_store, self._map_connection(src_ip, dst_ip), features)
+    self.seq_store.insert_flow(features, self.current_idx, label, timestamp=timestamp)
+    self._insert_into_store(self.src_store, src_ip, features, timestamp)
+    self._insert_into_store(self.dst_store, dst_ip, features, timestamp)
+    self._insert_into_store(self.con_store, self._map_connection(src_ip, dst_ip), features, timestamp)
     self.current_idx += 1

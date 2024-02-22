@@ -12,8 +12,8 @@ ip_address:
   dst: 3
 
 timestamp:
-  use_timediff: true, # if false don't ignore the timestamp
-  idx: 0,
+  use_timediff: true # if false don't ignore the timestamp
+  idx: 0
   format: "%Y-%m-%d %H:%M:%S"
 
 used_features: # we use Dur, Pkts, Bytes

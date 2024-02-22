@@ -27,8 +27,11 @@ def check_paths(args):
 
   settings_path = args.settingsfile
   if not os.path.isfile(settings_path):
-    print("Settings file does not exist: {}".format(settings_path))
-    os.mkdir(settings_path)
+    raise ValueError("Settings file does not exist: {}".format(settings_path))
+
+  trained_model = args.trained_model
+  if trained_model is not None and not os.path.isfile(trained_model):
+      raise ValueError("Could not find trained model at location {}".format(trained_model))
 
   return inf_path, outf_path, settings_path
 
@@ -44,6 +47,8 @@ if __name__ == "__main__":
   # Model and model training related arguments
   parser.add_argument("--model", type=str, default="vanilla_ae", help="The type of model to use. \
                       Currently only 'vanilla_ae' is supported.")
+  parser.add_argument("--trained_model", type=str, default=None, help="If provided, then this will be a full path to a trained model. Skipping\
+                      training and going right into model evaluation.")
   parser.add_argument("--n_training_examples", type=int, default=int(1e6), help="Number of training examples")
   parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
                       last batch will just be filled with the remaining training examples.")
@@ -55,6 +60,8 @@ if __name__ == "__main__":
   parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
 
   # evaluation related arguments
+  parser.add_argument("--max_eval_samples", type=int, default=None, help="The maximum number of samples that we want to evaluate on.\
+                      If None do an exhaustive evaluation through the input file.")
   parser.add_argument("--save_model", type=bool, default=True, help="Saves the trained model.")
   parser.add_argument("--model_save_path", type=str, default=os.path.join("evaluation", "trained_models", "trained_model.keras"), help="The\
                       full path where to save the trained model.")
@@ -71,14 +78,16 @@ if __name__ == "__main__":
 
   model_type = args.model
   input_shape = data_handler.get_input_shape()
+  trained_model = args.trained_model
   model_factory = ModelFactory(model_type)
-  model = model_factory.get_model(input_shape=input_shape)
+  model = model_factory.get_model(trained_model, input_shape=input_shape)
 
-  # train model
-  print("Expected input shape for model: {}".format(input_shape))
-  trainer = ModelTrainer(data_handler, model_type, args.n_training_examples, args.save_model, args.model_save_path)
-  trainer.train(model, args.benign_training, b_size=args.b_size)
+  if trained_model is None:
+    # train model
+    print("Expected input shape for model: {}".format(input_shape))
+    trainer = ModelTrainer(data_handler, model_type, args.n_training_examples, args.save_model, args.model_save_path)
+    trainer.train(model, args.benign_training, b_size=args.b_size)
 
   # model evaluation
   evaluator = ModelEvaluator(model_type, data_handler)
-  evaluator.evaluate(model)
+  evaluator.evaluate(model, args.max_eval_samples)

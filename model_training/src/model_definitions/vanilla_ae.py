@@ -7,6 +7,14 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.layers import LSTM, Bidirectional
 
+from tensorflow.keras.models import load_model
+
+def load_vanilla_ae(trained_model_path: str):
+  """
+  No need to explain here.
+  """
+  return load_model(trained_model_path)
+
 def get_uncompiled_vanilla_ae(input_shape, output_dim):
   """
   Get the vanilla autoencoder.

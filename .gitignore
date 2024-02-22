@@ -2,6 +2,8 @@
 *__pycache__*
 *.keras
 *.h5
+*.png
+*.jpg
 requirements_full.txt
 
 # data related

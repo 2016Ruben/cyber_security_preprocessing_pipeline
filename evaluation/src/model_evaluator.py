@@ -16,17 +16,19 @@ class ModelEvaluator():
     self.model_name = model_name
     if self.model_name != "vanilla_ae":
       raise ValueError("Model name in evaluator not supported: {}".format(self.model_name))
-    
+
+    self.count = 0
+
   def _predict_next_value(self, model, window):
     """This function predicts the next value. Currently it returns us float values from the autoencoder, so
     that the RoC curves can be computed.
     """
-    if self.model_name != "vanilla_ae":
-      res = model.predict(np.expand_dims(window, 0))
+    if self.model_name == "vanilla_ae":
+      res = model.predict(np.expand_dims(window, 0), verbose=0)
       diff = np.mean(np.abs(res - window.reshape(-1)))
       return diff
     
-  def evaluate(self, model):
+  def evaluate(self, model, max_eval_samples: int):
     values = list()
     labels = list()
 
@@ -39,6 +41,15 @@ class ModelEvaluator():
       next_value = self._predict_next_value(model, window)
       values.append(next_value)
       labels.append(label)
+
+      self.count += 1
+      if max_eval_samples is not None and self.count == max_eval_samples:
+        print("{}/{} samples evaluated. Finishing and printing next.".format(self.count, max_eval_samples))
+        break
+      elif max_eval_samples is not None and self.count % int(1e5) == 0:
+        print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
+      elif self.count % int(1e5) == 0:
+        print("{} samples evaluated".format(self.count))
 
     fpr, tpr, thresholds = roc_curve(labels, values)
     roc_auc = roc_auc_score(labels, values)

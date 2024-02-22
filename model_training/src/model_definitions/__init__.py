@@ -1,1 +1,1 @@
-from .vanilla_ae import get_uncompiled_vanilla_ae
+from .vanilla_ae import get_uncompiled_vanilla_ae, load_vanilla_ae

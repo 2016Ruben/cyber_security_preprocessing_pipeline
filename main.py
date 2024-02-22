@@ -62,6 +62,8 @@ if __name__ == "__main__":
   # evaluation related arguments
   parser.add_argument("--max_eval_samples", type=int, default=None, help="The maximum number of samples that we want to evaluate on.\
                       If None do an exhaustive evaluation through the input file.")
+  parser.add_argument("--evaluation_bsize", type=int, default=int(1e5), help="The batch size during evaluation. Trades off speed of evaluation with\
+                      memory consumption. Batches of input data are gathered before given the model to evaluate.")
   parser.add_argument("--save_model", type=bool, default=True, help="Saves the trained model.")
   parser.add_argument("--model_save_path", type=str, default=os.path.join("evaluation", "trained_models", "trained_model.keras"), help="The\
                       full path where to save the trained model.")
@@ -90,4 +92,4 @@ if __name__ == "__main__":
 
   # model evaluation
   evaluator = ModelEvaluator(model_type, data_handler)
-  evaluator.evaluate(model, args.max_eval_samples)
+  evaluator.evaluate(model, args.max_eval_samples, args.evaluation_bsize)

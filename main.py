@@ -33,7 +33,12 @@ def check_paths(args):
   if trained_model is not None and not os.path.isfile(trained_model):
       raise ValueError("Could not find trained model at location {}".format(trained_model))
 
-  return inf_path, outf_path, settings_path
+  figure_path = args.figure_path
+  if not os.path.isdir(figure_path):
+    print("Creating directory for figures: {}".format(figure_path))
+    os.mkdir(figure_path)
+
+  return inf_path, outf_path, settings_path, figure_path
 
 
 if __name__ == "__main__":
@@ -71,17 +76,18 @@ if __name__ == "__main__":
   parser.add_argument("--save_scaler", type=bool, default=True, help="If true it saves the MinMaxScaler. Only applied when scale_data\
                       is true.")
   parser.add_argument("--save_results", type=bool, default=True, help="Saves the evaluator model.")
-  parser.add_argument("--model_save_path", type=str, default=os.path.join("evaluation", "trained_models", "trained_model.keras"), help="The\
+  parser.add_argument("--model_save_path", type=str, default=os.path.join("results", "trained_models", "trained_model.keras"), help="The\
                       full path where to save the trained model.")
-  parser.add_argument("--scaler_save_path", type=str, default=os.path.join("evaluation", "trained_models", "minmaxscaler.pk"), help="The\
+  parser.add_argument("--scaler_save_path", type=str, default=os.path.join("results", "trained_models", "minmaxscaler.pk"), help="The\
                       full path where to save the minmax-scaler.")
-  parser.add_argument("--results_save_path", type=str, default=os.path.join("evaluation", "results", "results.pk"), help="The\
+  parser.add_argument("--results_dict_save_path", type=str, default=os.path.join("results", "results_dict.pk"), help="The\
                       full path where to save the results as a dictionary.")
-
+  parser.add_argument("--figure_path", type=str, default=os.path.join("results", "figures"), help="The path where we store the figures in.")  
+  
   args = parser.parse_args()
 
   # preprocessing
-  inf_path, outf_path, settings_path = check_paths(args)
+  inf_path, outf_path, settings_path, figure_path = check_paths(args)
   data_handler = DataMapper(inf_path, settings_path, args.ngram_size)
 
   # prepare training
@@ -110,5 +116,5 @@ if __name__ == "__main__":
   evaluator = ModelEvaluator(data_handler, scaler, model_type)
   evaluator.evaluate(model, args.max_eval_samples, args.evaluation_bsize)
   if args.save_results:
-    evaluator.save_results(args.results_save_path)
-  evaluator.print_plots()
+    evaluator.save_results(args.results_dict_save_path)
+  evaluator.print_plots(figure_path)

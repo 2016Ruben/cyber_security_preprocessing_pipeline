@@ -65,32 +65,11 @@ class ModelEvaluator():
 
     print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
 
-  def print_plots(self):
+  def print_plots(self, figure_path):
     """
     Prints the plots.
     """
-    fpr, tpr, thresholds = roc_curve(self.labels, self.predictions)
-    roc_auc = roc_auc_score(self.labels, self.predictions)
-
-    plt.figure(figsize=(10, 7))
-    lw = 2
-    sns.lineplot(
-      x=fpr,
-      y=tpr,
-      color="darkorange",
-      lw=lw,
-      label="ROC curve (area = %0.2f)" % roc_auc,
-      #ci=None, # to speed up computation, else very slow
-      errorbar=None, # to speed up computation, else very slow
-    )
-    sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title("Receiver operating characteristic")
-    plt.legend(loc="lower right")
-    plt.savefig("aucs_vanilla_vae.png")
+    self._print_auc_real_time(figure_path)
 
   def save_results(self, save_path: str):
     """Saves the results as a dictionary in the specified path. 
@@ -155,3 +134,33 @@ class ModelEvaluator():
     """
     if self.model_name == "vanilla_ae":
       return self._predict_vanilla_ae(model, batch)
+    
+
+  def _print_auc_real_time(self, figure_path):
+    """Print the AuC of the real time mode: Only the last element is the labeling instance. 
+
+    Args:
+        figure_path (str): Path to where the figures will be stored. This is a path, not a file!
+    """
+    fpr, tpr, thresholds = roc_curve(self.labels, self.predictions)
+    roc_auc = roc_auc_score(self.labels, self.predictions)
+
+    plt.figure(figsize=(10, 7))
+    lw = 2
+    sns.lineplot(
+      x=fpr,
+      y=tpr,
+      color="darkorange",
+      lw=lw,
+      label="ROC curve (area = %0.2f)" % roc_auc,
+      errorbar=None, # to speed up computation, else very slow
+    )
+
+    sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver operating characteristic")
+    plt.legend(loc="lower right")
+    plt.savefig(os.path.join(figure_path, "auc_normal.png"))

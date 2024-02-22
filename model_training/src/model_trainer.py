@@ -12,8 +12,20 @@ class ModelTrainer():
   Object that trains a given model.
   """
   
-  def __init__(self, data_handler, model_name: str, n_training_examples: int, save_model: bool, model_save_path: str):
+  def __init__(self, data_handler, scaler, model_name: str, n_training_examples: int, save_model: bool, model_save_path: str):
+    """Initializes the trainer.
+
+    Args:
+        data_handler (DataMapper): The wrapper for the input data.
+        scaler (ScalerWrapper): The scaler wrapper to be used. If None no scaling will be applied.
+        model_name (str): The name of the model type.
+        n_training_examples (int): Number of samples to be used for training.
+        save_model (bool): Save the model, yes or no?
+        model_save_path (str): If model is to be save it'll be here.
+    """
     self.data_handler = data_handler
+    self.scaler = scaler
+
     self.model_name = model_name
     self.n_training_examples = n_training_examples
 
@@ -40,8 +52,8 @@ class ModelTrainer():
     for i in range(self.n_training_examples):
       res = self.data_handler.get_next_window()
       if res is None:
-        print("EOF reached during training phase. Please choose a larger file or adjust 'n_training_examples'\
-                        parameter. Terminating program.")
+        print("EOF reached during training phase. Please choose a larger input file or adjust\
+               'n_training_examples' parameter. Terminating program.")
         exit()
 
       next_example, label = res[0], res[1]
@@ -54,6 +66,9 @@ class ModelTrainer():
         print("{} out of {} examples checked.".format(i, self.n_training_examples))
     
     train_batch = np.array(train_batch)
+    if self.scaler is not None:
+      train_batch = self.scaler.fit_transform_3d(train_batch)
+
     model.fit(
       train_batch, 
       train_batch.reshape(train_batch.shape[0], -1),
@@ -62,13 +77,11 @@ class ModelTrainer():
       shuffle=False
     )
 
-    if not self.save_model:
-      return
-    
-    path_split = os.path.split(self.model_save_path)
-    directory = os.path.join(*(path_split[:-1]))
-    print("Storing model in {}".format(directory))
-    if not os.path.isdir(directory):
-      os.mkdir(directory)
+    if self.save_model:
+      path_split = os.path.split(self.model_save_path)
+      directory = os.path.join(*(path_split[:-1]))
+      print("Storing model in {}".format(self.model_save_path))
+      if not os.path.isdir(directory):
+        os.mkdir(directory)
 
-    model.save(self.model_save_path)
+      model.save(self.model_save_path)

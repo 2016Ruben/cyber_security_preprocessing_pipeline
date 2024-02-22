@@ -3,16 +3,30 @@ Written by Robert Baumgartner, 2024
 r.baumgartner-1@tudelft.nl
 """
 
-import numpy as np
+import os
+import pickle as pk
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import numpy as np
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 class ModelEvaluator():
-  def __init__(self, model_name: str, data_handler):
+  def __init__(self, data_handler, scaler, model_name: str):
+    """Initialize the evaluation model.
+
+    Args:
+        data_handler (DataMapper): The data handler.
+        scaler (_type_): The scaler wrapper. If None no scaling will be applied. Make sure it is trained by trainer or loaded!
+        model_name (str): The type of the model.
+
+    Raises:
+        ValueError: Model type does not exist.
+    """
     self.data_handler = data_handler
+    self.scaler = scaler
+
     self.model_name = model_name
     if self.model_name != "vanilla_ae":
       raise ValueError("Model name in evaluator not supported: {}".format(self.model_name))
@@ -29,6 +43,9 @@ class ModelEvaluator():
       if len(batch)==0:
         break
       
+      if self.scaler is not None:
+        batch = self.scaler.transform_3d(np.array(batch))
+
       predictions = self._predict_next_batch(model, batch)
       self.predictions.extend(predictions)
       self.labels.extend(batch_labels)
@@ -40,35 +57,60 @@ class ModelEvaluator():
 
       if max_eval_samples is not None and self.count == max_eval_samples:
         print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
-        break
+        return
       elif max_eval_samples is not None:
         print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
       else:
         print("{} batches and {} evaluated".format(self.bcount, self.count))
 
-    print("Done with evaluation. Printing results.")
+    print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
 
+  def print_plots(self):
+    """
+    Prints the plots.
+    """
     fpr, tpr, thresholds = roc_curve(self.labels, self.predictions)
     roc_auc = roc_auc_score(self.labels, self.predictions)
 
     plt.figure(figsize=(10, 7))
     lw = 2
     sns.lineplot(
-      fpr,
-      tpr,
+      x=fpr,
+      y=tpr,
       color="darkorange",
       lw=lw,
       label="ROC curve (area = %0.2f)" % roc_auc,
+      #ci=None, # to speed up computation, else very slow
+      errorbar=None, # to speed up computation, else very slow
     )
-    sns.lineplot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
+    sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.title("Receiver operating characteristic")
     plt.legend(loc="lower right")
-    #plt.show()
     plt.savefig("aucs_vanilla_vae.png")
+
+  def save_results(self, save_path: str):
+    """Saves the results as a dictionary in the specified path. 
+    If directory does not exist it will be created.
+
+    Args:
+        save_path (str): The full path to save the model.
+    """
+    path_split = os.path.split(save_path)
+    directory = os.path.join(*(path_split[:-1]))
+    print("Storing results in {}".format(save_path))
+    if not os.path.isdir(directory):
+      os.mkdir(directory)
+    
+    results = {
+      "predictions": self.predictions,
+      "labels": self.labels
+    }
+    pk.dump(results, open(save_path, "wb"), protocol=-1)
+    print("Saved results.")
 
   def _collect_batch(self, bsize: int, max_eval_samples: int):
     """Collects a batch of size <= bsize and returns it as a list along with corresponding labels.

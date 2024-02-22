@@ -18,7 +18,7 @@ class ModelFactory():
         trained_model (string): Path to a trained model. If no model to be loaded None.
         kwargs (dict): Model specific parameters.
     """
-    if self.model_name == 'vanilla_ae':
+    if self.model_name == "vanilla_ae":
       return self._get_vanilla_ae(trained_model, **kwargs)
     else:
       raise ValueError("Invalid model name in ModelFactory: {}".format(self.model_name))

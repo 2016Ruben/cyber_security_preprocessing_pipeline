@@ -4,8 +4,12 @@
 *.h5
 *.png
 *.jpg
+*.pk
 requirements_full.txt
 
 # data related
 data
 results
+
+# other
+supporting_scripts/

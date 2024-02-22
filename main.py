@@ -1,11 +1,11 @@
 """
-The main file of the real time system. Receives all the input parameters and start the system.
+The main file of the real time system. Receives all the input parameters and starts the system.
 """
 
 import os
 import argparse
 
-from model_training import ModelFactory, ModelTrainer
+from model_training import ModelFactory, ModelTrainer, ScalerWrapper
 from data_handling import DataMapper
 from evaluation import ModelEvaluator
 
@@ -55,6 +55,7 @@ if __name__ == "__main__":
   parser.add_argument("--use_cuda", type=bool, default=False, help="1 if cuda is used, 0 otherwise")
   parser.add_argument("--benign_training", type=bool, default=True, help="If True (1), then only benign examples are used during training.\
                       Else, all data examples will be used during training.")
+  parser.add_argument("--scale_data", type=bool, default=True, help="If True (1) then MinMax-Scaling will be applied.")
 
   # Data related arguments
   parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
@@ -64,9 +65,18 @@ if __name__ == "__main__":
                       If None do an exhaustive evaluation through the input file.")
   parser.add_argument("--evaluation_bsize", type=int, default=int(1e5), help="The batch size during evaluation. Trades off speed of evaluation with\
                       memory consumption. Batches of input data are gathered before given the model to evaluate.")
-  parser.add_argument("--save_model", type=bool, default=True, help="Saves the trained model.")
+
+  # saving and loading
+  parser.add_argument("--save_model", type=bool, default=True, help="If true it saves the trained model.")
+  parser.add_argument("--save_scaler", type=bool, default=True, help="If true it saves the MinMaxScaler. Only applied when scale_data\
+                      is true.")
+  parser.add_argument("--save_results", type=bool, default=True, help="Saves the evaluator model.")
   parser.add_argument("--model_save_path", type=str, default=os.path.join("evaluation", "trained_models", "trained_model.keras"), help="The\
                       full path where to save the trained model.")
+  parser.add_argument("--scaler_save_path", type=str, default=os.path.join("evaluation", "trained_models", "minmaxscaler.pk"), help="The\
+                      full path where to save the minmax-scaler.")
+  parser.add_argument("--results_save_path", type=str, default=os.path.join("evaluation", "results", "results.pk"), help="The\
+                      full path where to save the results as a dictionary.")
 
   args = parser.parse_args()
 
@@ -84,12 +94,21 @@ if __name__ == "__main__":
   model_factory = ModelFactory(model_type)
   model = model_factory.get_model(trained_model, input_shape=input_shape)
 
+  scaler = ScalerWrapper() if args.scale_data else None
+
   if trained_model is None:
     # train model
     print("Expected input shape for model: {}".format(input_shape))
-    trainer = ModelTrainer(data_handler, model_type, args.n_training_examples, args.save_model, args.model_save_path)
+    trainer = ModelTrainer(data_handler, scaler, model_type, args.n_training_examples, args.save_model, args.model_save_path)
     trainer.train(model, args.benign_training, b_size=args.b_size)
 
+  if trained_model is None and args.save_scaler: 
+    # trained_model check because we do not accidentally overwrite scaler when we did not fit a new one 
+    scaler.save_state(args.scaler_save_path)
+
   # model evaluation
-  evaluator = ModelEvaluator(model_type, data_handler)
+  evaluator = ModelEvaluator(data_handler, scaler, model_type)
   evaluator.evaluate(model, args.max_eval_samples, args.evaluation_bsize)
+  if args.save_results:
+    evaluator.save_results(args.results_save_path)
+  evaluator.print_plots()

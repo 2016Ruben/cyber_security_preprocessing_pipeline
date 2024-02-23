@@ -17,7 +17,7 @@ class ModelEvaluator():
     """Initialize the evaluation model.
 
     Args:
-        data_handler (DataMapper): The data handler.
+        data_handler (DataHandler): The data handler.
         scaler (_type_): The scaler wrapper. If None no scaling will be applied. Make sure it is trained by trainer or loaded!
         model_name (str): The type of the model.
 

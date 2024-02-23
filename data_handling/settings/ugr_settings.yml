@@ -12,7 +12,6 @@ ip_address:
   dst: 3
 
 timestamp:
-  use_timediff: true # if false don't ignore the timestamp
   idx: 0
   format: "%Y-%m-%d %H:%M:%S"
 
@@ -22,7 +21,10 @@ used_features: # we use Dur, Pkts, Bytes
   -2: "continuous"
 
 labeling:
-  idx: -1
+  idx: -1 # the index in the relevant file. If in separate file then this must be named
   background_label: "background" # flows with this label considered benign. Everything else malign
-
+  
+  filestructure: # these fields only relevant if labels come in a separate file, else ignored
+    has_header: false 
+    delimiter: ","
 ...

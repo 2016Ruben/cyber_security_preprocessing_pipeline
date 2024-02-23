@@ -2,12 +2,14 @@
 The main file of the real time system. Receives all the input parameters and starts the system.
 """
 
+
 import os
 import argparse
 
 from model_training import ModelFactory, ModelTrainer, ScalerWrapper
-from data_handling import DataMapper
+from data_handling import DataHandler
 from evaluation import ModelEvaluator
+
 
 def check_paths(args):
   """
@@ -29,6 +31,10 @@ def check_paths(args):
   if not os.path.isfile(settings_path):
     raise ValueError("Settings file does not exist: {}".format(settings_path))
 
+  labelf_path = args.labelf_path
+  if labelf_path is not None and not os.path.isfile(settings_path):
+    raise ValueError("Labeling file does not exist: {}".format(labelf_path))
+  
   trained_model = args.trained_model
   if trained_model is not None and not os.path.isfile(trained_model):
       raise ValueError("Could not find trained model at location {}".format(trained_model))
@@ -38,16 +44,18 @@ def check_paths(args):
     print("Creating directory for figures: {}".format(figure_path))
     os.mkdir(figure_path)
 
-  return inf_path, outf_path, settings_path, figure_path
+  return inf_path, outf_path, settings_path, figure_path, labelf_path
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  # some paths
+  # some paths and basic settings
   parser.add_argument("infile", type=str, help="Path to input file")
   parser.add_argument("settingsfile", type=str, help="Path to settings file for input data. See ./data_settings/")
   parser.add_argument("--outf_path", type=str, default="results", help="Where to write output")
+  parser.add_argument("--labelf_path", type=str, default=None, help="If not None, this is the full path to the labels file.")
+  parser.add_argument("--input_type", type=str, default="csv", help="The type of input we expect. Can be either 'csv' or 'kitsune' at the moment.")
 
   # Model and model training related arguments
   parser.add_argument("--model", type=str, default="vanilla_ae", help="The type of model to use. \
@@ -64,6 +72,7 @@ if __name__ == "__main__":
 
   # Data related arguments
   parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
+  parser.add_argument("--use_timediff", type=bool, default=True, help="If true, use the timestamp as an additional feature.")
 
   # evaluation related arguments
   parser.add_argument("--max_eval_samples", type=int, default=None, help="The maximum number of samples that we want to evaluate on.\
@@ -87,8 +96,8 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   # preprocessing
-  inf_path, outf_path, settings_path, figure_path = check_paths(args)
-  data_handler = DataMapper(inf_path, settings_path, args.ngram_size)
+  inf_path, outf_path, settings_path, figure_path, labelf_path = check_paths(args)
+  data_handler = DataHandler(inf_path, settings_path, labelf_path, args.input_type, args.ngram_size, args.use_timediff)
 
   # prepare training
   if not args.use_cuda:

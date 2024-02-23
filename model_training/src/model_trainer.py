@@ -16,7 +16,7 @@ class ModelTrainer():
     """Initializes the trainer.
 
     Args:
-        data_handler (DataMapper): The wrapper for the input data.
+        data_handler (DataHandler): The wrapper for the input data.
         scaler (ScalerWrapper): The scaler wrapper to be used. If None no scaling will be applied.
         model_name (str): The name of the model type.
         n_training_examples (int): Number of samples to be used for training.

@@ -3,19 +3,16 @@ Written by Robert Baumgartner, 2024
 r.baumgartner-1@tudelft.nl
 """
 
-import math
 import copy
 import numpy as np
+import math
 
-from datetime import datetime
-
-from .configuration import InputConfig
-
+from .input_wrapper import InputWrapper
 
 class _SlidingWindow():
   """
   This class models a sliding window. Along the mapped features it also holds the IDs
-  for each of the flows and is responsible for the correct computation of its features.
+  for each of the flows/vectors and is responsible for the correct computation of its features.
   """
   # static attributes
   window_size = 0
@@ -37,12 +34,12 @@ class _SlidingWindow():
     self.LS = [0] * _SlidingWindow.n_features
     self.SS = [0] * _SlidingWindow.n_features
 
-  def insert_flow(self, features, flow_id:int, label:int=None, timestamp:float=None):
-    """Inserts a flow into the window. 
+  def insert_feature_vector(self, features, vector_id:int, label:int=None, timestamp:float=None):
+    """Inserts a feature_vector into the window. 
 
     Args:
         features (list): The selected features as a list.
-        flow_id (int): ID of the flow.
+        vector_id (int): ID of the feature_vector.
         label (int): The label. 0 for benign, 1 for malign. If no label is provided it is None. Only the seq channels tracks labels.
         timestamp (float): The timestamp in seconds. We use this one for the timediff-feature.
     """
@@ -63,7 +60,7 @@ class _SlidingWindow():
       self.last_timestamp = timestamp
 
     self.window.append(np.array(mapped_features))
-    self.ids.append(flow_id)
+    self.ids.append(vector_id)
     if label:
       self.labels.append(label)
 
@@ -102,21 +99,17 @@ class _SlidingWindow():
     return res_list
 
 
-class DataMapper():
-  def __init__(self, data_path: str, settings_path: str, window_size: int):
+class DataHandler():
+  def __init__(self, data_path: str, settings_path: str, labelf_path: str, input_type: str, window_size: int, use_timediff: bool):
     """
-    Responsible for creating IDs, extracting the features from the flows, holding the configurations, and mapping to the
+    Responsible for creating IDs, extracting the features from the flows/vectors, holding the configurations, and mapping to the
     respective channels. Does NOT compute the statistics, that is for the sliding window to do.
     """
-    self.log_transform = True # TODO: perhaps we just do this flag away? No need to not do this
+    self.input_handler = InputWrapper(data_path, settings_path, labelf_path, input_type, use_timediff)
+    self.use_timediff = use_timediff
 
-    self.data_path = data_path
-    self.configs = InputConfig()
-    self.configs.read_settings(settings_path)
-    print("Read the input data setting with the following configurations: \n", self.configs)
-
-    n_features = len(self.configs.feature_map)
-    if self.configs.use_timediff:
+    n_features = self.input_handler.n_features()
+    if self.use_timediff:
       n_features += 1
 
     # these are the data structures mapping the ids to the windows
@@ -126,29 +119,19 @@ class DataMapper():
     self.dst_store = dict() # dst ip to window
     self.con_store = dict() # src_ip + dst_ip to window
 
-    self.input_fh = open(self.data_path, "rt")
-    if self.configs.has_header:
-      self.input_fh.readline() # we do away with the header
-
-  def __del__(self):
-    self.input_fh.close()
 
   def get_next_window(self):
     """
-    Reads a flow, maps it to the different channels, and returns a concatenated window 
-    along with the mapped label. Label = 0 for benign, 1 for malicious.
+    Reads a feature_vector, maps it to the different channels, and returns a concatenated window 
+    along with the mapped label. Label = 0 for benign, 1 for malicious. Returns None if end of input
+    reached.
     """
-    line = self.input_fh.readline()
-    if line=="":
-      return None # reached eof
-    
-    flow = line.strip().split(self.configs.delimiter)
-    label = 0 if flow[self.configs.label_idx] == self.configs.background_label else 1
-    
-    self._store_flow(flow, label)
 
-    src_ip = flow[self.configs.src_ip]
-    dst_ip = flow[self.configs.dst_ip]
+    features, label, src_ip, dst_ip, timestamp = self.input_handler.extract_features()
+    if features is None:
+      return None
+
+    self._store_feature_vector(features, label, src_ip, dst_ip, timestamp)
 
     seq_ngram = np.array(self.seq_store.retrieve_window())
     src_ngram = np.array(self.src_store[src_ip].retrieve_window())
@@ -185,38 +168,16 @@ class DataMapper():
         features (list): The features.
     """
     if key in store:
-      store[key].insert_flow(features, self.current_idx, timestamp=timestamp)
+      store[key].insert_feature_vector(features, self.current_idx, timestamp=timestamp)
     else:
       store[key] = _SlidingWindow()
-      store[key].insert_flow(features, self.current_idx, timestamp=timestamp)
+      store[key].insert_feature_vector(features, self.current_idx, timestamp=timestamp)
 
-  def _store_flow(self, flow, label):
-    """Maps the flow to the channels, and updates the internal datastructures accordingly.
-
-    Args:
-        flow (list): The flow, a list of features. [Does not have to be a flow necessarily, but this is what we used in our experiments].
-        flow_id (int): The id of the flow.
+  def _store_feature_vector(self, feature_vector: list, label: int, src_ip: str, dst_ip: str, timestamp: float):
+    """Maps the feature_vector along with the provided features to the channels, and updates the internal datastructures accordingly.
     """
-    features = list()
-    for idx, ftype in self.configs.feature_map.items():
-      if ftype==0 and self.log_transform:
-        features.append(math.log(float(flow[idx])+1))
-      elif ftype==0:
-        features.append(float(flow[idx])+1)
-      else:
-        raise ValueError("Categorical features not supported yet.")
-    
-    timestamp = None
-    if self.configs.use_timediff:
-      timestamp_string = flow[self.configs.timestamp_idx]
-      dt_obj = datetime.strptime(timestamp_string, self.configs.timestamp_format)
-      timestamp = dt_obj.timestamp()
-
-    src_ip = flow[self.configs.src_ip]
-    dst_ip = flow[self.configs.dst_ip]
-
-    self.seq_store.insert_flow(features, self.current_idx, label, timestamp=timestamp)
-    self._insert_into_store(self.src_store, src_ip, features, timestamp)
-    self._insert_into_store(self.dst_store, dst_ip, features, timestamp)
-    self._insert_into_store(self.con_store, self._map_connection(src_ip, dst_ip), features, timestamp)
+    self.seq_store.insert_feature_vector(feature_vector, self.current_idx, label, timestamp=timestamp)
+    self._insert_into_store(self.src_store, src_ip, feature_vector, timestamp)
+    self._insert_into_store(self.dst_store, dst_ip, feature_vector, timestamp)
+    self._insert_into_store(self.con_store, self._map_connection(src_ip, dst_ip), feature_vector, timestamp)
     self.current_idx += 1

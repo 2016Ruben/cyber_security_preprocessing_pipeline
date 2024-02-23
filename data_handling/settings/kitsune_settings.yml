@@ -1,0 +1,25 @@
+---
+
+# Features in order:
+# PacketIndx, srcIP, dstIP, framelen, timestamp
+
+ip_address:
+  src: 1
+  dst: 2
+
+timestamp:
+  idx: -1
+  format: "" # if empty, then no conversion needed, already comes in numerical form
+
+used_features: # we use Dur, Pkts, Bytes
+  -2: "continuous" # continuous or categorical.
+
+# TODO
+labeling:
+  idx: -1
+  background_label: "0" # flows with this label considered benign. Everything else malign
+
+  filestructure: # these fields only relevant if labels come in a separate file, else ignored
+    has_header: true 
+    delimiter: ","
+...

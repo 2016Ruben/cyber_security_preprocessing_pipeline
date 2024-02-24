@@ -17,6 +17,10 @@ Additionally, for the Kitsune hook we have used:
 Alternatively, tshark can be used instead of scapy, leading to faster
 code execution, see [original authors](https://github.com/ymirsky/Kitsune-py/tree/master).
 
+# Datasets
+
+The link for the dataset from the Kitsune work can be found on [Kaggle](https://www.kaggle.com/datasets/ymirsky/network-attack-dataset-kitsune).
+
 # License
 
 ### TODO: Do the license here

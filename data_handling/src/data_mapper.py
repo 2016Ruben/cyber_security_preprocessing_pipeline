@@ -129,7 +129,7 @@ class DataHandler():
 
     features, label, src_ip, dst_ip, timestamp = self.input_handler.extract_features()
     if features is None:
-      return None
+      return None, None
 
     self._store_feature_vector(features, label, src_ip, dst_ip, timestamp)
 

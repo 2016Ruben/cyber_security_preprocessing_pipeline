@@ -1,0 +1,3 @@
+# Prerequisites to run_kitsune_experiments.sh
+
+This file assumes the dataset being downloaded and extracted to data/kitsune_data. Download from [Kaggle](https://www.kaggle.com/datasets/ymirsky/network-attack-dataset-kitsune). Furthermore, the blank space in all directories have to be replaced with underscores, and the data names have to remain. For example, the active wiretap pcap file will be found in ../data/kitsune_data/Active_Wiretap/Active_Wiretap_pcap.pcapng, and its labels file in ../data/kitsune_data/Active_Wiretap/Active_Wiretap_labels.csv.

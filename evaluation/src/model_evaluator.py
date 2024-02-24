@@ -101,11 +101,10 @@ class ModelEvaluator():
     batch_labels = list()
 
     for _ in range(bsize):
-      window_test = self.data_handler.get_next_window()
-      if window_test is None: # reached eof
+      window, label = self.data_handler.get_next_window()
+      if window is None: # reached eof
         return batch, batch_labels
 
-      window, label = window_test[0], window_test[1]
       batch.append(window)
       batch_labels.append(label)
 

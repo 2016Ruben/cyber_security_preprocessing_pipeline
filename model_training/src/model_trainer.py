@@ -50,13 +50,12 @@ class ModelTrainer():
     """
     train_batch = list()
     for i in range(self.n_training_examples):
-      res = self.data_handler.get_next_window()
-      if res is None:
+      next_example, label = self.data_handler.get_next_window()
+      if next_example is None:
         print("EOF reached during training phase. Please choose a larger input file or adjust\
                'n_training_examples' parameter. Terminating program.")
         exit()
 
-      next_example, label = res[0], res[1]
       if benign_training and label==1:
         continue
       train_batch.append(next_example)
@@ -65,6 +64,10 @@ class ModelTrainer():
       if i % int(1e5)==0:
         print("{} out of {} examples checked.".format(i, self.n_training_examples))
     
+    if len(train_batch)==0:
+      print("No viable training examples found. Is the labelfile correctly set, and are its settings correct?.")
+      exit()
+
     train_batch = np.array(train_batch)
     if self.scaler is not None:
       train_batch = self.scaler.fit_transform_3d(train_batch)

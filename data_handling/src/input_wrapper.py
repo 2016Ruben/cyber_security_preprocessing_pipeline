@@ -75,7 +75,7 @@ class InputWrapper():
       all_features, label = self._get_streamed_line()
 
     if all_features is None:
-      return None
+      return None, None, None, None, None
 
     src_ip = all_features[self.configs.src_ip]
     dst_ip = all_features[self.configs.dst_ip]
@@ -150,6 +150,6 @@ class InputWrapper():
     """
     Does what you think it does.
     """
-    line = self.labelf_handler.readline()
+    line = self.labelf_handler.readline().strip()
     line = line.split(self.configs.labelf_delimiter)
-    return self._label_from_string(line[self.configs.label_idx])
+    return self._label_from_string(line[self.configs.label_idx].strip())

@@ -10,15 +10,7 @@ import math
 
 from .configuration import FileInputConfigs, StreamInputConfigs
 
-_kitsune_path = "../../kitsune/Kitsune"
-try:
-  sys.path.append(_kitsune_path)
-  from FeatureExtractor import FE
-except ImportError:
-  print("FeatureExtractor.FE from Kitsune not found in directory\
-        {}. Continuing without it.".format(_kitsune_path))
-  sys.path.remove(_kitsune_path)
-del _kitsune_path
+from .kitsune_data_handling import FE
 
 class InputWrapper():
   """
@@ -46,6 +38,9 @@ class InputWrapper():
       self.input_handler = open(self.data_path, "rt")
       if self.configs.has_header:
         self.input_handler.readline() # we do away with the header
+    elif input_type == "kitsune" and labelf_path is None:
+      print("input type is kitsune and requires a labelf_path, but labelf_path is not specified. Aborting program")
+      exit(0)
     elif input_type == "kitsune":
       self.input_handler = FE(data_path)
 
@@ -129,7 +124,7 @@ class InputWrapper():
 
     The return can be None. In this case the input file has reached eof.
     """
-    features = self.input_handler.get_next_vector_unprocessed()
+    features = self.input_handler.get_next_vector()
     if len(features) == 0:
       return None, None # reached eof
     

@@ -60,8 +60,6 @@ if __name__ == "__main__":
   # Model and model training related arguments
   parser.add_argument("--model", type=str, default="vanilla_ae", help="The type of model to use. \
                       Currently only 'vanilla_ae' is supported.")
-  parser.add_argument("--trained_model", type=str, default=None, help="If provided, then this will be a full path to a trained model. Skipping\
-                      training and going right into model evaluation.")
   parser.add_argument("--n_training_examples", type=int, default=int(1e6), help="Number of training examples")
   parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
                       last batch will just be filled with the remaining training examples.")
@@ -91,7 +89,9 @@ if __name__ == "__main__":
                       full path where to save the minmax-scaler.")
   parser.add_argument("--results_dict_save_path", type=str, default=os.path.join("results", "results_dict.pk"), help="The\
                       full path where to save the results as a dictionary.")
-  parser.add_argument("--figure_path", type=str, default=os.path.join("results", "figures"), help="The path where we store the figures in.")  
+  parser.add_argument("--figure_path", type=str, default=os.path.join("results", "figures"), help="The path where we store the figures in.")
+  parser.add_argument("--trained_model", type=str, default=None, help="If provided, then this will be a full path to a trained model. Skipping\
+                      training and going right into model evaluation.") 
   
   args = parser.parse_args()
 

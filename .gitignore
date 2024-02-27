@@ -5,6 +5,7 @@
 *.png
 *.jpg
 *.pk
+*.txt
 requirements_full.txt
 
 # data related

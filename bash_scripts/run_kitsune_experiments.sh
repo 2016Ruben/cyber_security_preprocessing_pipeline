@@ -21,6 +21,6 @@ for dir in data/kitsune_data/*/; do
     res_file="results/${dsname}/results_dict_${it}.pk"
     time_file="results/${dsname}/time_${it}.txt"
 
-    { time python main.py ${pcapf} ${yaml_input} --input_type=kitsune --model_type=${model_name} --labelf_path=${labelf} --ngram_size=${ngram_size} --save_scaler=0 --figure_path=${figure_file} --model_save_path=${model_file} --results_dict_save_path=${res_file} --b_size=${b_size} --n_training_examples=1000000 ; } 2> ${time_file}
+    { time python main.py ${pcapf} ${yaml_input} --input_type=kitsune --model_type=${model_type} --labelf_path=${labelf} --ngram_size=${ngram_size} --save_scaler=0 --figure_path=${figure_file} --model_save_path=${model_file} --results_dict_save_path=${res_file} --b_size=${b_size} --n_training_examples=1000000 ; } 2> ${time_file}
   done
 done

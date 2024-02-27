@@ -20,20 +20,20 @@ class ScalerWrapper():
 
   def fit_transform_3d(self, X):
     X, X_shape = self._reshape_3d_to_2d(X)
-    self.scaler.fit_transform(X)
+    X = self.scaler.fit_transform(X)
     return self._reshape_2d_to_3d(X, X_shape)
 
   def transform_3d(self, X):
     X, X_shape = self._reshape_3d_to_2d(X)
-    self.scaler.transform(X)
+    X = self.scaler.transform(X)
     return self._reshape_2d_to_3d(X, X_shape)
   
   def fit_transform_2d(self, X):
-    raise Exception("Not implemented yet.")
-
+    return self.scaler.fit_transform(X)
+  
   def transform_2d(self, X):
-    raise Exception("Not implemented yet.")
-
+    return self.scaler.transform(X)
+  
   def save_state(self, scaler_save_path):
     """Saves the stored scaler and creates the directory structure to it if it doesn't exist yet.
 

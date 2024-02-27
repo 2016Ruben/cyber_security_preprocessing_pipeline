@@ -40,7 +40,7 @@ def check_paths(args):
       raise ValueError("Could not find trained model at location {}".format(trained_model))
 
   figure_path = args.figure_path
-  if not os.path.isdir(figure_path):
+  if not os.path.isdir(figure_path) and not figure_path.endswith(".png") and not figure_path.endswith(".jpg"):
     print("Creating directory for figures: {}".format(figure_path))
     os.mkdir(figure_path)
 
@@ -58,8 +58,8 @@ if __name__ == "__main__":
   parser.add_argument("--input_type", type=str, default="csv", help="The type of input we expect. Can be either 'csv' or 'kitsune' at the moment.")
 
   # Model and model training related arguments
-  parser.add_argument("--model", type=str, default="vanilla_ae", help="The type of model to use. \
-                      Currently only 'vanilla_ae' is supported.")
+  parser.add_argument("--model_type", type=str, default="vanilla_ae", help="The type of model to use. \
+                      Currently only 'vanilla_ae' and 'lstm_ae' are supported.")
   parser.add_argument("--n_training_examples", type=int, default=int(1e6), help="Number of training examples")
   parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
                       last batch will just be filled with the remaining training examples.")
@@ -78,18 +78,20 @@ if __name__ == "__main__":
   parser.add_argument("--evaluation_bsize", type=int, default=int(1e5), help="The batch size during evaluation. Trades off speed of evaluation with\
                       memory consumption. Batches of input data are gathered before given the model to evaluate.")
 
-  # saving and loading
+  # saving
   parser.add_argument("--save_model", type=bool, default=True, help="If true it saves the trained model.")
   parser.add_argument("--save_scaler", type=bool, default=True, help="If true it saves the MinMaxScaler. Only applied when scale_data\
                       is true.")
-  parser.add_argument("--save_results", type=bool, default=True, help="Saves the evaluator model.")
+  parser.add_argument("--save_results", type=bool, default=True, help="Saves the results as a dictionay.")
   parser.add_argument("--model_save_path", type=str, default=os.path.join("results", "trained_models", "trained_model.keras"), help="The\
                       full path where to save the trained model.")
   parser.add_argument("--scaler_save_path", type=str, default=os.path.join("results", "trained_models", "minmaxscaler.pk"), help="The\
                       full path where to save the minmax-scaler.")
   parser.add_argument("--results_dict_save_path", type=str, default=os.path.join("results", "results_dict.pk"), help="The\
                       full path where to save the results as a dictionary.")
-  parser.add_argument("--figure_path", type=str, default=os.path.join("results", "figures"), help="The path where we store the figures in.")
+  parser.add_argument("--figure_path", type=str, default=os.path.join("results", "figures"), help="Either a path where we store the figure in, or a full filepath ending in .png or .jpg.")
+  
+  # loading
   parser.add_argument("--trained_model", type=str, default=None, help="If provided, then this will be a full path to a trained model. Skipping\
                       training and going right into model evaluation.") 
   
@@ -103,18 +105,18 @@ if __name__ == "__main__":
   if not args.use_cuda:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # disable GPU
 
-  model_type = args.model
+  model_type = args.model_type
   input_shape = data_handler.get_input_shape()
   trained_model = args.trained_model
   model_factory = ModelFactory(model_type)
-  model = model_factory.get_model(trained_model, input_shape=input_shape)
 
   scaler = ScalerWrapper() if args.scale_data else None
+  model = model_factory.get_model(trained_model, scaler, input_shape=input_shape)
 
   if trained_model is None:
     # train model
     print("Expected input shape for model: {}".format(input_shape))
-    trainer = ModelTrainer(data_handler, scaler, model_type, args.n_training_examples, args.save_model, args.model_save_path)
+    trainer = ModelTrainer(data_handler, args.n_training_examples, args.save_model, args.model_save_path)
     trainer.train(model, args.benign_training, b_size=args.b_size)
 
   if trained_model is None and args.save_scaler: 
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     scaler.save_state(args.scaler_save_path)
 
   # model evaluation
-  evaluator = ModelEvaluator(data_handler, scaler, model_type)
+  evaluator = ModelEvaluator(data_handler, model_type)
   evaluator.evaluate(model, args.max_eval_samples, args.evaluation_bsize)
   if args.save_results:
     evaluator.save_results(args.results_dict_save_path)

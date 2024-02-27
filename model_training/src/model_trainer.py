@@ -12,7 +12,7 @@ class ModelTrainer():
   Object that trains a given model.
   """
   
-  def __init__(self, data_handler, scaler, model_name: str, n_training_examples: int, save_model: bool, model_save_path: str):
+  def __init__(self, data_handler, n_training_examples: int, save_model: bool, model_save_path: str):
     """Initializes the trainer.
 
     Args:
@@ -24,9 +24,6 @@ class ModelTrainer():
         model_save_path (str): If model is to be save it'll be here.
     """
     self.data_handler = data_handler
-    self.scaler = scaler
-
-    self.model_name = model_name
     self.n_training_examples = n_training_examples
 
     self.save_model = save_model
@@ -35,11 +32,11 @@ class ModelTrainer():
     self.count = 0
 
   def train(self, model, benign_training: bool, **kwargs):
-    if self.model_name == "vanilla_ae":
+    if "b_size" in kwargs:
       b_size = kwargs["b_size"]
       self._train_tf_model_batch(model, benign_training, b_size)
     else:
-      raise ValueError("Model type not supported in ModelTrainer: {}".format(self.model_name))
+      raise NotImplementedError("So far b_size must be supported")
     
     print("Trained model with {} training examples".format(self.count))
     
@@ -68,17 +65,7 @@ class ModelTrainer():
       print("No viable training examples found. Is the labelfile correctly set, and are its settings correct?.")
       exit()
 
-    train_batch = np.array(train_batch)
-    if self.scaler is not None:
-      train_batch = self.scaler.fit_transform_3d(train_batch)
-
-    model.fit(
-      train_batch, 
-      train_batch.reshape(train_batch.shape[0], -1),
-      batch_size=b_size,
-      epochs=1,
-      shuffle=False
-    )
+    model.fit(train_batch, b_size)
 
     if self.save_model:
       path_split = os.path.split(self.model_save_path)
@@ -87,4 +74,4 @@ class ModelTrainer():
       if not os.path.isdir(directory):
         os.mkdir(directory)
 
-      model.save(self.model_save_path)
+      model.save_model(self.model_save_path)

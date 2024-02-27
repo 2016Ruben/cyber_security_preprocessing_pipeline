@@ -6,17 +6,17 @@ r.baumgartner-1@tudelft.nl
 import numpy as np
 
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.layers import Dense, Input, LSTM, Bidirectional
 from tensorflow.keras.models import load_model
 
 from .base_class  import ModelWrapperBase
 
-class VanillaAeWrapper(ModelWrapperBase):
+class LstmAeWrapper(ModelWrapperBase):
   """The model wrapper class. Apart from training and predicting, this class is also 
   responsible for getting its own data right, e.g. reshaping the data and scaling it. 
   This provides a neat and clean interface for all classes using the model. 
   """
-  def __init__(self, scaler, **kwargs):
+  def __init__(self, scaler=None, **kwargs):
     input_shape = kwargs["input_shape"]
     self.model = self._init_model(input_shape)
     self.scaler = scaler
@@ -33,7 +33,7 @@ class VanillaAeWrapper(ModelWrapperBase):
     """
     X = self._prepare_array(X)
     if self.scaler is not None:
-      X = self.scaler.fit_transform_2d(X)
+      X = self.scaler.fit_transform_3d(X)
 
     self.model.fit(
       X, 
@@ -49,30 +49,29 @@ class VanillaAeWrapper(ModelWrapperBase):
     """
     X = self._prepare_array(X)
     if self.scaler is not None:
-      X = self.scaler.transform_2d(X)
-    return self.model.predict(X)
+      X = self.scaler.transform_3d(X)
+    return X
   
   def _prepare_array(self, X):
     n_samples = len(X)
     X = np.array(X)
     if n_samples==1:
       X = np.expand_dims(X, 0)
-    X = X.reshape(X.shape[0], -1)
     return X
 
   def _init_model(self, input_shape):
     """
-    Get the compiled vanilla autoencoder.
+    Get the compiled LSTM autoencoder.
     """
-    input_shape = input_shape[0] * input_shape[1]
-    
-    input_layer = Input(shape=input_shape)
-    encoder = Dense(int(input_shape * 0.5), activation="relu") # 
-    x_encoder = encoder(input_layer)
-    encoder_output = Dense(int(input_shape * 0.25), activation="relu")(x_encoder)
+    output_shape = input_shape[0] * input_shape[1]
 
-    x_latent = Dense(int(input_shape * 0.5), activation="relu")(encoder_output)
-    x_out = Dense(input_shape, activation="linear")(x_latent)
+    input_layer = Input(shape=input_shape)
+    encoder = LSTM(int(output_shape * 0.5), activation="relu")
+    x_encoder = encoder(input_layer)
+    encoder_output = Dense(int(output_shape * 0.25), activation="relu")(x_encoder)
+
+    x_latent = Dense(int(output_shape * 0.5), activation="relu")(encoder_output)
+    x_out = Dense(output_shape, activation="linear")(x_latent)
     output = x_out
 
     model = Model(input_layer, output)

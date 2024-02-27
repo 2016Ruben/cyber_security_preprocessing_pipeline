@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 class ModelEvaluator():
-  def __init__(self, data_handler, scaler, model_name: str):
+  def __init__(self, data_handler, model_name):
     """Initialize the evaluation model.
 
     Args:
@@ -25,11 +25,7 @@ class ModelEvaluator():
         ValueError: Model type does not exist.
     """
     self.data_handler = data_handler
-    self.scaler = scaler
-
     self.model_name = model_name
-    if self.model_name != "vanilla_ae":
-      raise ValueError("Model name in evaluator not supported: {}".format(self.model_name))
 
     self.count = 0
     self.bcount = 0
@@ -43,9 +39,6 @@ class ModelEvaluator():
       if len(batch)==0:
         break
       
-      if self.scaler is not None:
-        batch = self.scaler.transform_3d(np.array(batch))
-
       predictions = self._predict_next_batch(model, batch)
       self.predictions.extend(predictions)
       self.labels.extend(batch_labels)
@@ -61,7 +54,7 @@ class ModelEvaluator():
       elif max_eval_samples is not None:
         print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
       else:
-        print("{} batches and {} evaluated".format(self.bcount, self.count))
+        print("{} batches and {} sampled evaluated".format(self.bcount, self.count))
 
     print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
 
@@ -114,16 +107,12 @@ class ModelEvaluator():
 
     return batch, batch_labels
 
-  def _predict_vanilla_ae(self, model, batch):
+  def _predict_tf_model(self, model, batch):
     """
     What you think it does.
-
-    TODO: shall we put this into the vanilla ae functions? This class could become a black hole
     """
+    res = model.predict(batch)
     batch = np.array(batch)
-    if batch.shape[0]==1: # batch is single window
-      batch = np.expand_dims(batch, 0)
-    res = model.predict(batch) #, verbose=0)
     diff = np.mean(np.abs(res - batch.reshape(batch.shape[0], -1)), axis=-1)
     return diff
 
@@ -131,9 +120,10 @@ class ModelEvaluator():
     """This function predicts the next value. Currently it returns us float values from the autoencoder, so
     that the RoC curves can be computed.
     """
-    if self.model_name == "vanilla_ae":
-      return self._predict_vanilla_ae(model, batch)
-    
+    if self.model_name == "vanilla_ae" or self.model_name == "lstm_ae":
+      return self._predict_tf_model(model, batch)
+    else:
+      raise NotImplementedError("model_name is not implemented yet in _predict_next_batch")
 
   def _print_auc_real_time(self, figure_path):
     """Print the AuC of the real time mode: Only the last element is the labeling instance. 
@@ -155,6 +145,11 @@ class ModelEvaluator():
       errorbar=None, # to speed up computation, else very slow
     )
 
+    outfile = None
+    if not figure_path.endswith(".png") and not figure_path.endswith(".jpg"):
+      os.path.join(figure_path, "auc_normal.png")
+    else:
+      outfile = figure_path
     sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
@@ -162,4 +157,4 @@ class ModelEvaluator():
     plt.ylabel("True Positive Rate")
     plt.title("Receiver operating characteristic")
     plt.legend(loc="lower right")
-    plt.savefig(os.path.join(figure_path, "auc_normal.png"))
+    plt.savefig(outfile)

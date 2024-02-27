@@ -16,10 +16,10 @@ class VanillaAeWrapper(ModelWrapperBase):
   responsible for getting its own data right, e.g. reshaping the data and scaling it. 
   This provides a neat and clean interface for all classes using the model. 
   """
-  def __init__(self, scaler, **kwargs):
+  def __init__(self, **kwargs):
     input_shape = kwargs["input_shape"]
     self.model = self._init_model(input_shape)
-    self.scaler = scaler
+    self.scaler = kwargs["scaler"]
 
   def load_model(self, model_path: str):
     self.model = load_model(model_path)
@@ -27,10 +27,11 @@ class VanillaAeWrapper(ModelWrapperBase):
   def save_model(self, model_path: str):
     self.model.save(model_path)
 
-  def fit(self, X: list, b_size):
+  def fit(self, X: list, **kwargs):
     """
     X is a list so the model can decide how it wants the data to be.
     """
+    b_size = kwargs["b_size"]
     X = self._prepare_array(X)
     if self.scaler is not None:
       X = self.scaler.fit_transform_2d(X)

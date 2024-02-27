@@ -107,7 +107,7 @@ class ModelEvaluator():
 
     return batch, batch_labels
 
-  def _predict_tf_model(self, model, batch):
+  def _predict(self, model, batch):
     """
     What you think it does.
     """
@@ -120,8 +120,8 @@ class ModelEvaluator():
     """This function predicts the next value. Currently it returns us float values from the autoencoder, so
     that the RoC curves can be computed.
     """
-    if self.model_name == "vanilla_ae" or self.model_name == "lstm_ae":
-      return self._predict_tf_model(model, batch)
+    if self.model_name == "vanilla_ae" or self.model_name == "lstm_ae" or self.model_name == "kitnet":
+      return self._predict(model, batch)
     else:
       raise NotImplementedError("model_name is not implemented yet in _predict_next_batch")
 

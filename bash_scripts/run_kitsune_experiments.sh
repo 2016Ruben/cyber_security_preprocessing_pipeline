@@ -15,7 +15,7 @@ for dir in data/kitsune_data/*/; do
   pcapf="${dir}${dsname}_pcap.pcapng"
   labelf="${dir}${dsname}_labels.csv"
 
-  for it in {1..10}; do
+  for it in {1..2}; do
     figure_file="results/${dsname}/auc_${it}.png"
     model_file="results/${dsname}/model_${it}.keras"
     res_file="results/${dsname}/results_dict_${it}.pk"

@@ -10,7 +10,7 @@ class ModelWrapperBase(ABC):
   responsible for getting its own data right, e.g. reshaping the data and scaling it. 
   This provides a neat and clean interface for all classes using the model. 
   """
-  def __init__(self, scaler=None, **kwargs):
+  def __init__(self, **kwargs):
     pass
 
   @abstractmethod

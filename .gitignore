@@ -16,3 +16,6 @@ results
 supporting_scripts/
 *Kitsune*
 *venv*
+
+# exceptions
+!LICENSE.txt

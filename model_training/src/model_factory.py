@@ -5,13 +5,13 @@ r.baumgartner-1@tudelft.nl
 
 import os
 
-from .model_definitions import VanillaAeWrapper, LstmAeWrapper
+from .model_definitions import VanillaAeWrapper, LstmAeWrapper, KitNETWrapper
 
 class ModelFactory():
   def __init__(self, model_name: str):
     self.model_name = model_name
 
-  def get_model(self, trained_model: str, scaler, **kwargs):
+  def get_model(self, trained_model: str, **kwargs):
     """Constructs and returns the model. 
 
     Args:
@@ -20,9 +20,11 @@ class ModelFactory():
     """
     model = None
     if self.model_name == "vanilla_ae":
-      model = VanillaAeWrapper(scaler, **kwargs)
+      model = VanillaAeWrapper(**kwargs)
     elif self.model_name == "lstm_ae":
-      model = LstmAeWrapper(scaler, **kwargs)
+      model = LstmAeWrapper(**kwargs)
+    elif self.model_name == "kitnet":
+      model = KitNETWrapper(**kwargs)
     else:
       raise ValueError("Invalid model name in ModelFactory: {}".format(self.model_name))
     

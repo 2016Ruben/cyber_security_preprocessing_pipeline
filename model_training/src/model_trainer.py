@@ -32,15 +32,10 @@ class ModelTrainer():
     self.count = 0
 
   def train(self, model, benign_training: bool, **kwargs):
-    if "b_size" in kwargs:
-      b_size = kwargs["b_size"]
-      self._train_tf_model_batch(model, benign_training, b_size)
-    else:
-      raise NotImplementedError("So far b_size must be supported")
-    
+    self._train_batch(model, benign_training, **kwargs)    
     print("Trained model with {} training examples".format(self.count))
     
-  def _train_tf_model_batch(self, model, benign_training: bool, b_size: int):
+  def _train_batch(self, model, benign_training: bool, **kwargs):
     """Although the data handler supports streaming by returning a single instance each time, 
     the tensforflow API does better for us just simply defining one large array and learning
     for one epoch unshuffled. The effect is the same.
@@ -65,7 +60,7 @@ class ModelTrainer():
       print("No viable training examples found. Is the labelfile correctly set, and are its settings correct?.")
       exit()
 
-    model.fit(train_batch, b_size)
+    model.fit(train_batch, **kwargs)
 
     if self.save_model:
       path_split = os.path.split(self.model_save_path)

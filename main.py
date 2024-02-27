@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
   # Model and model training related arguments
   parser.add_argument("--model_type", type=str, default="vanilla_ae", help="The type of model to use. \
-                      Currently only 'vanilla_ae' and 'lstm_ae' are supported.")
+                      Currently only 'vanilla_ae', 'lstm_ae' and 'kitnet' are supported.")
   parser.add_argument("--n_training_examples", type=int, default=int(1e6), help="Number of training examples")
   parser.add_argument("--b_size", type=int, default=1, help="Batch-size for training. If n_training_examples mod b_size not zero the\
                       last batch will just be filled with the remaining training examples.")
@@ -95,6 +95,9 @@ if __name__ == "__main__":
   parser.add_argument("--trained_model", type=str, default=None, help="If provided, then this will be a full path to a trained model. Skipping\
                       training and going right into model evaluation.") 
   
+  # KitNET relevant arguments
+
+
   args = parser.parse_args()
 
   # preprocessing
@@ -111,7 +114,7 @@ if __name__ == "__main__":
   model_factory = ModelFactory(model_type)
 
   scaler = ScalerWrapper() if args.scale_data else None
-  model = model_factory.get_model(trained_model, scaler, input_shape=input_shape)
+  model = model_factory.get_model(trained_model, input_shape=input_shape, scaler=scaler, n_train=args.n_training_examples)
 
   if trained_model is None:
     # train model

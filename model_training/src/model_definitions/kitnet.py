@@ -19,10 +19,11 @@ class KitNETWrapper(ModelWrapperBase):
     """
     self.n_train = kwargs["n_train"]
     input_shape = kwargs["input_shape"]
+    input_dim = input_shape if type(input_shape)==int else input_shape[0]*input_shape[1] # whether input type is feature vector or n-gram
 
     FM_grace_period = min(5000, int(self.n_train/5))
     AD_grace_period = self.n_train - FM_grace_period
-    self.model = self.AnomDetector = KitNET(input_shape[0]*input_shape[1], FM_grace_period=FM_grace_period, AD_grace_period=AD_grace_period)
+    self.model = self.AnomDetector = KitNET(input_dim, FM_grace_period=FM_grace_period, AD_grace_period=AD_grace_period)
 
     self.n_evaluated = 0
 

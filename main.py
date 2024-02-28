@@ -55,7 +55,8 @@ if __name__ == "__main__":
   parser.add_argument("settingsfile", type=str, help="Path to settings file for input data. See ./data_settings/")
   parser.add_argument("--outf_path", type=str, default="results", help="Where to write output")
   parser.add_argument("--labelf_path", type=str, default=None, help="If not None, this is the full path to the labels file.")
-  parser.add_argument("--input_type", type=str, default="csv", help="The type of input we expect. Can be either 'csv' or 'kitsune' at the moment.")
+  parser.add_argument("--input_type", type=str, default="csv", help="The type of input we expect. Can be either 'csv', 'kitsune'\
+                      or 'kitsune_original' at the moment. 'kitsune_original' means that the data will be processed as in their paper.")
 
   # Model and model training related arguments
   parser.add_argument("--model_type", type=str, default="vanilla_ae", help="The type of model to use. \

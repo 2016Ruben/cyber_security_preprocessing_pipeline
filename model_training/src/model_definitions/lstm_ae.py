@@ -38,7 +38,7 @@ class LstmAeWrapper(ModelWrapperBase):
 
     self.model.fit(
       X, 
-      X,
+      X.reshape(X.shape[0], -1),
       batch_size=b_size,
       epochs=1,
       shuffle=False,
@@ -51,7 +51,8 @@ class LstmAeWrapper(ModelWrapperBase):
     X = self._prepare_array(X)
     if self.scaler is not None:
       X = self.scaler.transform_3d(X)
-    return X
+
+    return self.model.predict(X)
   
   def _prepare_array(self, X):
     n_samples = len(X)

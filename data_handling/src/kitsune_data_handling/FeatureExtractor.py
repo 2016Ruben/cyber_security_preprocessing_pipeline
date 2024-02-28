@@ -10,6 +10,7 @@ import subprocess
 #        subprocess.call(cmd,shell=True)
 #Import dependencies
 import csv
+from .feature_processing import netstat as ns
 import numpy as np
 print("Importing Scapy Library")
 from scapy.all import *
@@ -36,6 +37,7 @@ class FE:
         ### Prep Feature extractor (AfterImage) ###
         maxHost = 100000000000
         maxSess = 100000000000
+        self.nstat = ns.netStat(np.nan, maxHost, maxSess)
 
     def _get_tshark_path(self):
         if platform.system() == 'Windows':
@@ -106,7 +108,12 @@ class FE:
             print("Loaded " + str(len(self.scapyin)) + " Packets.")
 
     # this is a modification where we adjusted the return values
-    def get_next_vector(self):
+    def get_next_vector(self, get_original_features: bool):
+        """
+        Get the next vector. If get_original_features is true, then the 
+        features as in the original Kitsune paper will be returned. Else, 
+        a vector with the unprocessed features will be returned.
+        """
         if self.curPacketIndx == self.limit:
             if self.parse_type == 'tsv':
                 self.tsvinf.close()
@@ -196,8 +203,16 @@ class FE:
 
         self.curPacketIndx = self.curPacketIndx + 1
 
-        res = list([self.curPacketIndx, srcIP, dstIP, int(framelen), float(timestamp)])
-        return res
+        if get_original_features:
+            try:
+                return self.nstat.updateGetStats(IPtype, srcMAC, dstMAC, srcIP, srcproto, dstIP, dstproto,
+                                                    int(framelen),
+                                                    float(timestamp))
+            except Exception as e:
+                print(e)
+                return []        
+        else:
+            return list([self.curPacketIndx, srcIP, dstIP, int(framelen), float(timestamp)])
 
     def pcap2tsv_with_tshark(self):
         print('Parsing with tshark...')

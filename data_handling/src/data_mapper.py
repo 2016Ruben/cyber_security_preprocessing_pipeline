@@ -107,6 +107,7 @@ class DataHandler():
     """
     self.input_handler = InputWrapper(data_path, settings_path, labelf_path, input_type, use_timediff)
     self.use_timediff = use_timediff
+    self.input_type = input_type
 
     n_features = self.input_handler.n_features()
     if self.use_timediff:
@@ -130,6 +131,8 @@ class DataHandler():
     features, label, src_ip, dst_ip, timestamp = self.input_handler.extract_features()
     if features is None:
       return None, None
+    elif self.input_type == "kitsune_original":
+      return features, label
 
     self._store_feature_vector(features, label, src_ip, dst_ip, timestamp)
 
@@ -145,6 +148,8 @@ class DataHandler():
     Gets the input shape that's to be expected for the model. The shape is inferred from the features as declared in the 
     settings, as well as from the window_size.
     """
+    if self.input_type == "kitsune_original":
+      return self.input_handler.n_features()
     return _SlidingWindow.window_size, _SlidingWindow.n_features*2*4 # *2 for statistics, and *4 for 4 channels
   
 

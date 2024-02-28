@@ -88,7 +88,7 @@ class ModelEvaluator():
     """Collects a batch of size <= bsize and returns it as a list along with corresponding labels.
 
     Args:
-        bsize (int): The back size.
+        bsize (int): The batch size.
     """
     batch = list()
     batch_labels = list()
@@ -107,21 +107,30 @@ class ModelEvaluator():
 
     return batch, batch_labels
 
-  def _predict(self, model, batch):
+  def _predict_tf_model(self, model, batch):
     """
-    What you think it does.
+    Predicts the tensorflow models. Unlike e.g. Kitsune they don't return the anomaly scores already, 
+    so this function is an approach to do that in a unified manner.
     """
     res = model.predict(batch)
     batch = np.array(batch)
-    diff = np.mean(np.abs(res - batch.reshape(batch.shape[0], -1)), axis=-1)
+
+    # way 1
+    #diff = np.mean(np.abs(res - batch.reshape(batch.shape[0], -1)), axis=-1)
+    
+    # way 2
+    res = res.reshape(batch.shape)
+    diff = np.mean(np.abs(res[:, -1, :] - batch[:, -1, :].reshape(batch.shape[0], -1)), axis=-1)
     return diff
 
   def _predict_next_batch(self, model, batch):
     """This function predicts the next value. Currently it returns us float values from the autoencoder, so
     that the RoC curves can be computed.
     """
-    if self.model_name == "vanilla_ae" or self.model_name == "lstm_ae" or self.model_name == "kitnet":
-      return self._predict(model, batch)
+    if self.model_name == "vanilla_ae" or self.model_name == "lstm_ae":
+      return self._predict_tf_model(model, batch)
+    elif self.model_name == "kitnet":
+      return model.predict(batch)
     else:
       raise NotImplementedError("model_name is not implemented yet in _predict_next_batch")
 
@@ -147,7 +156,7 @@ class ModelEvaluator():
 
     outfile = None
     if not figure_path.endswith(".png") and not figure_path.endswith(".jpg"):
-      os.path.join(figure_path, "auc_normal.png")
+      outfile = os.path.join(figure_path, "auc_normal.png")
     else:
       outfile = figure_path
     sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)

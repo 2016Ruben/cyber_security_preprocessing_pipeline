@@ -24,7 +24,7 @@ class InputWrapper():
     self.input_type = input_type
     if input_type == "csv":
       self.configs = FileInputConfigs()
-    elif input_type == "kitsune":
+    elif input_type == "kitsune" or input_type=="kitsune_original":
       self.configs = StreamInputConfigs()
     else:
       raise ValueError("Unknown --input_type argument {}. Only 'csv' or 'kitsune' supported so far.".format(input_type))
@@ -41,7 +41,7 @@ class InputWrapper():
     elif input_type == "kitsune" and labelf_path is None:
       print("input type is kitsune and requires a labelf_path, but labelf_path is not specified. Aborting program")
       exit(0)
-    elif input_type == "kitsune":
+    elif "kitsune" in input_type:
       self.input_handler = FE(data_path)
 
     self.labelf_path = labelf_path
@@ -61,6 +61,8 @@ class InputWrapper():
     """Gets the number of raw features (without temporal features)
     to be extracted in each turn before processing the features further.
     """
+    if self.input_type == "kitsune_original":
+      return self.input_handler.get_num_features()
     return len(self.configs.feature_map)
 
   def extract_features(self):
@@ -71,11 +73,15 @@ class InputWrapper():
     """
     if self.input_type == "csv":
       all_features, label = self._process_line()
-    elif self.input_type == "kitsune":
+    elif "kitsune" in self.input_type:
       all_features, label = self._get_streamed_line()
+    
 
     if all_features is None:
       return None, None, None, None, None
+    elif self.input_type == "kitsune_original": # features are already mapped by the feature extractor. 
+      # TODO: not a nice design. This should be the responsibility of the feature mapper
+      return all_features, label, None, None, None
 
     src_ip = all_features[self.configs.src_ip]
     dst_ip = all_features[self.configs.dst_ip]
@@ -124,7 +130,8 @@ class InputWrapper():
 
     The return can be None. In this case the input file has reached eof.
     """
-    features = self.input_handler.get_next_vector()
+    get_original_features = self.input_type == "kitsune_original"
+    features = self.input_handler.get_next_vector(get_original_features)
     if len(features) == 0:
       return None, None # reached eof
     

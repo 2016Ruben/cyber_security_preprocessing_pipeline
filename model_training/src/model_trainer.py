@@ -42,7 +42,15 @@ class ModelTrainer():
     """
     train_batch = list()
     for i in range(self.n_training_examples):
+
       next_example, label = self.data_handler.get_next_window()
+      #print(np.array(next_example))
+      #if i == 3:
+      #  exit()
+      #
+      #if i < 5000:
+      #  continue
+      
       if next_example is None:
         print("EOF reached during training phase. Please choose a larger input file or adjust\
                'n_training_examples' parameter. Terminating program.")

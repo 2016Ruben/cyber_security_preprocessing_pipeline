@@ -27,5 +27,10 @@ class ModelWrapperBase(ABC):
     """
     pass
 
+  @abstractmethod
   def predict(self, X: list):
+    pass
+
+  @abstractmethod
+  def _preprocess_batch(self, X: list):
     pass

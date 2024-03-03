@@ -17,7 +17,6 @@ class InputWrapper():
   This class abstracts away the input for us and provides a common interface for all possible input we might face.
   """
   def __init__(self, data_path: str, settings_path: str, labelf_path: str, input_type: str, use_timediff: bool):
-    self.log_transform = True # TODO: perhaps we just do this flag away? No need to not do this
     self.use_timediff = use_timediff
     
     # prepare the configurations
@@ -96,10 +95,8 @@ class InputWrapper():
 
     feature_vector = list()
     for idx, ftype in self.configs.feature_map.items():
-      if ftype==0 and self.log_transform:
-        feature_vector.append(math.log(float(all_features[idx])+1))
-      elif ftype==0:
-        feature_vector.append(float(all_features[idx])+1)
+      if ftype==0:
+        feature_vector.append(float(all_features[idx]))
       else:
         raise ValueError("Categorical features not supported yet.")
 

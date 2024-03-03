@@ -32,7 +32,7 @@ class LstmAeWrapper(ModelWrapperBase):
     X is a list so the model can decide how it wants the data to be.
     """
     b_size = kwargs["b_size"]
-    X = self._prepare_array(X)
+    X = self._preprocess_batch(X)
     if self.scaler is not None:
       X = self.scaler.fit_transform_3d(X)
 
@@ -48,11 +48,16 @@ class LstmAeWrapper(ModelWrapperBase):
     """
     X is a list so the model can decide how it wants the data to be.
     """
-    X = self._prepare_array(X)
+    X = self._preprocess_batch(X)
     if self.scaler is not None:
       X = self.scaler.transform_3d(X)
 
     return self.model.predict(X)
+  
+  def _preprocess_batch(self, X: list):
+    X = self._prepare_array(X)
+    X = np.log(X+1)
+    return X
   
   def _prepare_array(self, X):
     n_samples = len(X)

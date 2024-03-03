@@ -32,10 +32,11 @@ class VanillaAeWrapper(ModelWrapperBase):
     X is a list so the model can decide how it wants the data to be.
     """
     b_size = kwargs["b_size"]
-    X = self._prepare_array(X)
+    X = self._preprocess_batch(X)
     if self.scaler is not None:
-      X = self.scaler.fit_transform_2d(X)
-
+      X = self.scaler.fit_transform_3d(X)
+    X = X.reshape(X.shape[0], -1)
+    
     self.model.fit(
       X, 
       X,
@@ -48,17 +49,23 @@ class VanillaAeWrapper(ModelWrapperBase):
     """
     X is a list so the model can decide how it wants the data to be.
     """
-    X = self._prepare_array(X)
+    X = self._preprocess_batch(X)
     if self.scaler is not None:
-      X = self.scaler.transform_2d(X)
+      X = self.scaler.transform_3d(X)
+    X = X.reshape(X.shape[0], -1)
     return self.model.predict(X)
+  
+  def _preprocess_batch(self, X: list):
+    X = self._prepare_array(X)
+    X = np.log(X+1)
+    return X
   
   def _prepare_array(self, X):
     n_samples = len(X)
     X = np.array(X)
     if n_samples==1:
       X = np.expand_dims(X, 0)
-    X = X.reshape(X.shape[0], -1)
+    X = np.log(X+1)
     return X
 
   def _init_model(self, input_shape):
@@ -80,7 +87,7 @@ class VanillaAeWrapper(ModelWrapperBase):
 
     model.compile(
       loss="mean_absolute_error",
-      optimizer="sgd",
+      optimizer="adam",
       metrics=["mean_absolute_error"]
     )
 

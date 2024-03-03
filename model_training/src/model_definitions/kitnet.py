@@ -54,7 +54,7 @@ class KitNETWrapper(ModelWrapperBase):
 
       self.n_evaluated += 1
       if self.n_evaluated % 1000 == 0:
-        print("{} out of {} samples evaluated.".format(self.n_evaluated, self.n_train))
+        print("{} samples evaluated.".format(self.n_evaluated)) # TODO: what's this about?
 
     return res
   

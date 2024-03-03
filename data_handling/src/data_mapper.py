@@ -17,6 +17,7 @@ class _SlidingWindow():
   # static attributes
   window_size = 0
   n_features = 0
+  log_transform = False
 
   def __init__(self, window_size: int=None, n_features: int=None, store_labels:bool=False):
     if window_size is not None:
@@ -46,6 +47,9 @@ class _SlidingWindow():
     self.N += 1
     mapped_features = list()
     for idx, f in enumerate(features):
+      if _SlidingWindow.log_transform:
+        f = math.log(f+1)
+
       self.LS[idx] += f
       self.SS[idx] += f**2
 
@@ -53,9 +57,11 @@ class _SlidingWindow():
 
     if timestamp is not None:
       diff = timestamp - self.last_timestamp
-      diff = math.log(diff + 1)
-      self.LS[-1] = diff
-      self.SS[-1] = diff**2
+      if _SlidingWindow.log_transform:
+        diff = math.log(diff + 1)
+      
+      self.LS[-1] += diff
+      self.SS[-1] += diff**2
       mapped_features = self._insert_statistics(mapped_features, -1)
       self.last_timestamp = timestamp
 
@@ -94,7 +100,7 @@ class _SlidingWindow():
     """
     mean = self.LS[idx] / self.N
     res_list.append(mean)
-    std_dev = math.sqrt( abs( (self.SS[idx]/2) - mean**2) )
+    std_dev = math.sqrt( abs( (self.SS[idx]/self.N) - mean**2) )
     res_list.append(std_dev)
     return res_list
 
@@ -172,11 +178,9 @@ class DataHandler():
         key (str): The IP address or connection.
         features (list): The features.
     """
-    if key in store:
-      store[key].insert_feature_vector(features, self.current_idx, timestamp=timestamp)
-    else:
+    if not key in store:
       store[key] = _SlidingWindow()
-      store[key].insert_feature_vector(features, self.current_idx, timestamp=timestamp)
+    store[key].insert_feature_vector(features, self.current_idx, timestamp=timestamp)
 
   def _store_feature_vector(self, feature_vector: list, label: int, src_ip: str, dst_ip: str, timestamp: float):
     """Maps the feature_vector along with the provided features to the channels, and updates the internal datastructures accordingly.

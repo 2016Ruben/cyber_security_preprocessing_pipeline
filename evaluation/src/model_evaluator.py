@@ -48,13 +48,13 @@ class ModelEvaluator():
       
       self.bcount += 1
 
-      if max_eval_samples is not None and self.count == max_eval_samples:
+      if max_eval_samples is not None and self.count >= max_eval_samples:
         print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
         return
       elif max_eval_samples is not None:
         print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
       else:
-        print("{} batches and {} sampled evaluated".format(self.bcount, self.count))
+        print("{} batches and {} samples evaluated".format(self.bcount, self.count))
 
     print("{}/{} samples evaluated.".format(self.count, max_eval_samples))
 
@@ -159,6 +159,8 @@ class ModelEvaluator():
       outfile = os.path.join(figure_path, "auc_normal.png")
     else:
       outfile = figure_path
+    print("Saving result figure in {}".format(outfile))
+
     sns.lineplot(x=[0, 1], y=[0, 1], color="navy", lw=lw, linestyle="--", errorbar=None,)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])

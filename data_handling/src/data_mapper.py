@@ -32,6 +32,7 @@ class _SlidingWindow():
     self.ids = list()
     self.labels = list() if store_labels else None
     self.last_timestamp = 0
+    
 
     self.N = 0
     self.LS = [0] * _SlidingWindow.n_features
@@ -103,13 +104,14 @@ class _SlidingWindow():
 
 
 class DataMapper():
-  def __init__(self, data_path: str, settings_path: str, window_size: int):
+  def __init__(self, data_path: str, settings_path: str, window_size: int, channels: str):
     """
     Responsible for creating IDs, extracting the features from the flows, holding the configurations, and mapping to the
     respective channels. Does NOT compute the statistics, that is for the sliding window to do.
     """
     self.log_transform = True # TODO: perhaps we just do this flag away? No need to not do this
 
+    self.channels = channels
     self.data_path = data_path
     self.configs = InputConfig()
     self.configs.read_settings(settings_path)
@@ -150,19 +152,37 @@ class DataMapper():
     src_ip = flow[self.configs.src_ip]
     dst_ip = flow[self.configs.dst_ip]
 
-    seq_ngram = np.array(self.seq_store.retrieve_window())
-    src_ngram = np.array(self.src_store[src_ip].retrieve_window())
-    dst_ngram = np.array(self.dst_store[dst_ip].retrieve_window())
-    con_ngram = np.array(self.con_store[self._map_connection(src_ip, dst_ip)].retrieve_window())
+    views_to_stack = []
 
-    return np.hstack((seq_ngram, src_ngram, dst_ngram, con_ngram)), label
+    # Sequential Channel
+    if self.channels == "all" or "seq" in self.channels:
+        views_to_stack.append(np.array(self.seq_store.retrieve_window()))
+
+    # Source Channel
+    if self.channels == "all" or "src" in self.channels:
+        views_to_stack.append(np.array(self.src_store[src_ip].retrieve_window()))
+
+    # Destination Channel
+    if self.channels == "all" or "dst" in self.channels:
+        views_to_stack.append(np.array(self.dst_store[dst_ip].retrieve_window()))
+
+    # Connection Channel
+    if self.channels == "all" or "conn" in self.channels:
+        views_to_stack.append(np.array(self.con_store[self._map_connection(src_ip, dst_ip)].retrieve_window()))
+
+    return np.hstack(views_to_stack), label
+  
   
   def get_input_shape(self):
     """
     Gets the input shape that's to be expected for the model. The shape is inferred from the features as declared in the 
     settings, as well as from the window_size.
     """
-    return _SlidingWindow.window_size, _SlidingWindow.n_features*2*4 # *2 for statistics, and *4 for 4 channels
+    if self.channels == "all":
+        n_active_channels = 4
+    else:
+        n_active_channels = 1
+    return _SlidingWindow.window_size, _SlidingWindow.n_features*2*n_active_channels # *2 for statistics, and *4 for 4 channels
   
 
   def _map_connection(self, src, dst):

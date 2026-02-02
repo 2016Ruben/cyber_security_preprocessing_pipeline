@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
   # Data related arguments
   parser.add_argument("--ngram_size", type=int, default=5, help="The size of the ngrams used.")
+  parser.add_argument("--channels", type=str, default="all", help="Select channels: all, seq, src, dst, conn")
 
   # evaluation related arguments
   parser.add_argument("--max_eval_samples", type=int, default=None, help="The maximum number of samples that we want to evaluate on.\
@@ -88,7 +89,7 @@ if __name__ == "__main__":
 
   # preprocessing
   inf_path, outf_path, settings_path, figure_path = check_paths(args)
-  data_handler = DataMapper(inf_path, settings_path, args.ngram_size)
+  data_handler = DataMapper(inf_path, settings_path, args.ngram_size, channels=args.channels)
 
   # prepare training
   if not args.use_cuda:
